@@ -8,8 +8,7 @@ interface SpendingField {
   key: keyof SpendingInput;
   label: string;
   rate: string;
-  rateColor: string;
-  icon: string;
+  opacity: string;
   placeholder: string;
   hint: string;
 }
@@ -19,8 +18,7 @@ const FIELDS: SpendingField[] = [
     key: "creditCard",
     label: "신용카드",
     rate: "15%",
-    rateColor: "text-orange-500",
-    icon: "💳",
+    opacity: "opacity-40",
     placeholder: "10,000,000",
     hint: "공제율이 낮아요. 문턱 채우기에 활용하세요.",
   },
@@ -28,8 +26,7 @@ const FIELDS: SpendingField[] = [
     key: "checkCard",
     label: "체크카드 · 현금영수증",
     rate: "30%",
-    rateColor: "text-[var(--color-primary)]",
-    icon: "🏧",
+    opacity: "opacity-70",
     placeholder: "5,000,000",
     hint: "문턱 통과 후 적극 활용하세요!",
   },
@@ -37,8 +34,7 @@ const FIELDS: SpendingField[] = [
     key: "culture",
     label: "도서 · 공연 · 박물관",
     rate: "30%",
-    rateColor: "text-purple-500",
-    icon: "🎭",
+    opacity: "opacity-70",
     placeholder: "500,000",
     hint: "총급여 7천만 원 이하만 해당해요.",
   },
@@ -46,8 +42,7 @@ const FIELDS: SpendingField[] = [
     key: "market",
     label: "전통시장",
     rate: "40%",
-    rateColor: "text-green-600",
-    icon: "🛒",
+    opacity: "",
     placeholder: "300,000",
     hint: "한도 초과 후에도 추가 공제 가능!",
   },
@@ -55,8 +50,7 @@ const FIELDS: SpendingField[] = [
     key: "transport",
     label: "대중교통",
     rate: "40%",
-    rateColor: "text-teal-500",
-    icon: "🚌",
+    opacity: "",
     placeholder: "200,000",
     hint: "한도 초과 후에도 추가 공제 가능!",
   },
@@ -110,12 +104,11 @@ export function SpendingStep({ values, onChange, onNext }: SpendingStepProps) {
                 {/* 라벨 행 */}
                 <div className="flex items-center justify-between mb-[0.8rem]">
                   <div className="flex items-center gap-[0.8rem]">
-                    <span className="text-[1.8rem] leading-none">{field.icon}</span>
                     <span className="text-[1.4rem] font-semibold text-[var(--color-text-primary)]">
                       {field.label}
                     </span>
                   </div>
-                  <span className={`text-[1.3rem] font-bold ${field.rateColor}`}>
+                  <span className={`text-[1.3rem] font-bold text-[var(--color-primary)] ${field.opacity}`}>
                     공제율 {field.rate}
                   </span>
                 </div>
