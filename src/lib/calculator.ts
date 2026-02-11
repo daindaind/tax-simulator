@@ -1,6 +1,6 @@
 /**
  * 연말정산 신용카드 소득공제 계산 엔진
- * 2024년 세법 기준
+ * 2025년 세법 기준
  */
 
 export interface SpendingInput {
@@ -29,7 +29,11 @@ export interface CalculationResult {
   potentialDeduction: number;   // 한도 적용 전 공제 가능 금액
 
   generalDeduction: number;     // 일반 공제액 (min(potential, 한도))
-  extraDeduction: number;       // 추가 공제액 (전통시장 + 대중교통, 최대 100만)
+  extraDeduction: number;       // 추가 공제액 (전통시장 최대 100만 + 대중교통 최대 100만)
+  extraDeductionBreakdown: {    // 추가 공제 항목별 내역
+    market: number;             // 전통시장 추가 공제 (최대 100만)
+    transport: number;          // 대중교통 추가 공제 (최대 100만)
+  };
   finalDeduction: number;       // 최종 소득공제 금액
 
   baseLimit: number;            // 일반 공제 한도 (총급여 7천 이하 300만, 초과 250만)
@@ -92,6 +96,7 @@ export function calculateCardDeduction(
       potentialDeduction: 0,
       generalDeduction: 0,
       extraDeduction: 0,
+      extraDeductionBreakdown: { market: 0, transport: 0 },
       finalDeduction: 0,
       baseLimit,
       limitRemaining: baseLimit,
@@ -142,15 +147,17 @@ export function calculateCardDeduction(
   const generalDeduction = Math.min(potentialDeduction, baseLimit);
   const limitRemaining = Math.max(0, baseLimit - potentialDeduction);
 
-  // 7. 추가 공제 계산 (전통시장 + 대중교통 각각 최대 100만 원)
-  // 일반 공제 한도를 초과한 경우에만 추가 공제가 의미있음
-  // 전통시장/대중교통의 공제 가능 금액을 추가 공제로 별도 인정 (최대 각 100만)
-  const extraMarket = Math.min(breakdown.market, 1_000_000);
-  const extraTransport = Math.min(breakdown.transport, 1_000_000);
-  const extraDeduction =
-    potentialDeduction > baseLimit
-      ? Math.min(extraMarket + extraTransport, 1_000_000)
-      : 0;
+  // 7. 추가 공제 계산
+  // 전통시장, 대중교통은 각각 독립적으로 최대 100만 원의 별도 한도를 가짐
+  // → 전통시장 100만 + 대중교통 100만 = 최대 200만 추가 공제 가능 (세법 §조특법 126조의2)
+  // 단, 일반 공제 한도(baseLimit)를 초과한 경우에만 추가 공제가 실질적 의미를 가짐
+  const extraMarket = potentialDeduction > baseLimit
+    ? Math.min(breakdown.market, 1_000_000)
+    : 0;
+  const extraTransport = potentialDeduction > baseLimit
+    ? Math.min(breakdown.transport, 1_000_000)
+    : 0;
+  const extraDeduction = extraMarket + extraTransport;
 
   const finalDeduction = generalDeduction + extraDeduction;
 
@@ -168,6 +175,7 @@ export function calculateCardDeduction(
     potentialDeduction,
     generalDeduction,
     extraDeduction,
+    extraDeductionBreakdown: { market: extraMarket, transport: extraTransport },
     finalDeduction,
     baseLimit,
     limitRemaining,
