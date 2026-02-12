@@ -1,17 +1,19 @@
 "use client";
 
-import { CalculationResult, formatKRW, DEDUCTION_RATES } from "@/lib/calculator";
+import { CalculationResult, formatKRW } from "@/lib/calculator";
+import { ACTIVE_RULES } from "@/lib/taxRule";
 
 interface DeductionBreakdownProps {
   result: CalculationResult;
 }
 
-const ITEM_LABELS: Record<string, { label: string; rate: string }> = {
-  creditCard: { label: "신용카드", rate: `${DEDUCTION_RATES.creditCard * 100}%` },
-  checkCard: { label: "체크카드/현금", rate: `${DEDUCTION_RATES.checkCard * 100}%` },
-  culture: { label: "도서·공연·박물관", rate: `${DEDUCTION_RATES.culture * 100}%` },
-  market: { label: "전통시장", rate: `${DEDUCTION_RATES.market * 100}%` },
-  transport: { label: "대중교통", rate: `${DEDUCTION_RATES.transport * 100}%` },
+const ITEM_LABELS: Record<string, { label: string }> = {
+  creditCard: { label: "신용카드" },
+  checkCard:  { label: "체크카드/현금" },
+  culture:    { label: "도서·공연·박물관" },
+  sports:     { label: "헬스장·수영장" },
+  market:     { label: "전통시장" },
+  transport:  { label: "대중교통" },
 };
 
 export function DeductionBreakdown({ result }: DeductionBreakdownProps) {
@@ -55,7 +57,8 @@ export function DeductionBreakdown({ result }: DeductionBreakdownProps) {
                   {ITEM_LABELS[key].label}
                 </td>
                 <td className="px-3 py-2.5 text-center text-gray-500">
-                  {ITEM_LABELS[key].rate}
+                  {/* TODO: 소득공제율 중복 계산 및 인라인 로직 개선 */}
+                  {((ACTIVE_RULES.categories.find((c) => c.key === key)?.rate ?? 0) * 100).toFixed(0)}%
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono font-medium text-gray-800">
                   {amount > 0 ? (

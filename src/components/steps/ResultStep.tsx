@@ -1,6 +1,7 @@
 "use client";
 
-import { CalculationResult, formatKRW, SpendingInput, DEDUCTION_RATES } from "@/lib/calculator";
+import { CalculationResult, formatKRW, SpendingInput } from "@/lib/calculator";
+import { ACTIVE_RULES } from "@/lib/taxRule";
 import { BottomCTA } from "@/components/funnel/BottomCTA";
 import { cn } from "@/lib/utils";
 
@@ -145,11 +146,10 @@ interface ResultStepProps {
 }
 
 function getTaxRate(salary: number): number {
-  if (salary <= 14_000_000) return 0.06;
-  if (salary <= 50_000_000) return 0.15;
-  if (salary <= 88_000_000) return 0.24;
-  if (salary <= 150_000_000) return 0.35;
-  return 0.38;
+  for (const bracket of ACTIVE_RULES.taxBrackets) {
+    if (bracket.upTo === null || salary <= bracket.upTo) return bracket.rate;
+  }
+  return ACTIVE_RULES.taxBrackets[ACTIVE_RULES.taxBrackets.length - 1].rate;
 }
 
 export function ResultStep({ result, spending, totalSalary, onRestart }: ResultStepProps) {
@@ -250,7 +250,8 @@ export function ResultStep({ result, spending, totalSalary, onRestart }: ResultS
                       {BREAKDOWN_LABELS[key].label}
                     </span>
                     <span className="text-[1.1rem] text-[var(--color-text-tertiary)]">
-                      ({(DEDUCTION_RATES[key] * 100).toFixed(0)}%)
+                      {/* TODO: 소득공제율 중복 계산 및 인라인 로직 개선 */}
+                      ({((ACTIVE_RULES.categories.find((c) => c.key === key)?.rate ?? 0) * 100).toFixed(0)}%)
                     </span>
                   </div>
                   <span className="text-[1.4rem] font-bold text-[var(--color-text-primary)]">

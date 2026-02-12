@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { SpendingInput } from "@/lib/calculator";
+import { ACTIVE_RULES } from "@/lib/taxRule";
 import { BottomCTA } from "@/components/funnel/BottomCTA";
 
 interface SpendingField {
   key: keyof SpendingInput;
   label: string;
-  rate: string;
   opacity: string;
   placeholder: string;
   hint: string;
@@ -17,7 +17,6 @@ const FIELDS: SpendingField[] = [
   {
     key: "creditCard",
     label: "신용카드",
-    rate: "15%",
     opacity: "opacity-40",
     placeholder: "10,000,000",
     hint: "공제율이 낮아요. 문턱 채우기에 활용하세요.",
@@ -25,7 +24,6 @@ const FIELDS: SpendingField[] = [
   {
     key: "checkCard",
     label: "체크카드 · 현금영수증",
-    rate: "30%",
     opacity: "opacity-70",
     placeholder: "5,000,000",
     hint: "문턱 통과 후 적극 활용하세요!",
@@ -33,7 +31,6 @@ const FIELDS: SpendingField[] = [
   {
     key: "culture",
     label: "도서 · 공연 · 박물관 · 영화",
-    rate: "30%",
     opacity: "opacity-70",
     placeholder: "500,000",
     hint: "총급여 7천만 원 이하만 해당해요.",
@@ -41,7 +38,6 @@ const FIELDS: SpendingField[] = [
   {
     key: "sports",
     label: "헬스장 · 수영장",
-    rate: "30%",
     opacity: "opacity-70",
     placeholder: "600,000",
     hint: "2025.07.01 이후 등록 시설 이용료만 해당해요.",
@@ -49,7 +45,6 @@ const FIELDS: SpendingField[] = [
   {
     key: "market",
     label: "전통시장",
-    rate: "40%",
     opacity: "",
     placeholder: "300,000",
     hint: "한도 초과 후에도 추가 공제 가능!",
@@ -57,7 +52,6 @@ const FIELDS: SpendingField[] = [
   {
     key: "transport",
     label: "대중교통",
-    rate: "40%",
     opacity: "",
     placeholder: "200,000",
     hint: "한도 초과 후에도 추가 공제 가능!",
@@ -71,12 +65,14 @@ interface SpendingStepProps {
   onNext: () => void;
 }
 
-// 총급여 7천만 초과 시 공제 불가 항목
-const SALARY_CAPPED_FIELDS: (keyof SpendingInput)[] = ["culture", "sports"];
+// 소득 상한이 있는 항목 — ACTIVE_RULES에서 파생
+const SALARY_CAPPED_FIELDS = ACTIVE_RULES.categories
+  .filter((c) => c.incomeLimit !== null)
+  .map((c) => c.key as keyof SpendingInput);
 
 export function SpendingStep({ values, onChange, totalSalary, onNext }: SpendingStepProps) {
   const [focusedKey, setFocusedKey] = useState<keyof SpendingInput | null>(null);
-  const isHighIncome = totalSalary > 70_000_000;
+  const isHighIncome = totalSalary > ACTIVE_RULES.incomeTierThreshold;
 
   const totalUsage = Object.values(values).reduce((a, b) => a + b, 0);
   const hasAnyInput = totalUsage > 0;
@@ -128,7 +124,8 @@ export function SpendingStep({ values, onChange, totalSalary, onNext }: Spending
                     )}
                   </div>
                   <span className={`text-[1.3rem] font-bold text-[var(--color-primary)] ${field.opacity}`}>
-                    공제율 {field.rate}
+                    {/* TODO: 소득공제율 중복 계산 및 인라인 로직 개선 */}
+                    공제율 {((ACTIVE_RULES.categories.find((c) => c.key === field.key)?.rate ?? 0) * 100).toFixed(0)}%
                   </span>
                 </div>
 
