@@ -32,11 +32,19 @@ const FIELDS: SpendingField[] = [
   },
   {
     key: "culture",
-    label: "도서 · 공연 · 박물관",
+    label: "도서 · 공연 · 박물관 · 영화",
     rate: "30%",
     opacity: "opacity-70",
     placeholder: "500,000",
     hint: "총급여 7천만 원 이하만 해당해요.",
+  },
+  {
+    key: "sports",
+    label: "헬스장 · 수영장",
+    rate: "30%",
+    opacity: "opacity-70",
+    placeholder: "600,000",
+    hint: "2025.07.01 이후 등록 시설 이용료만 해당해요.",
   },
   {
     key: "market",
@@ -59,11 +67,16 @@ const FIELDS: SpendingField[] = [
 interface SpendingStepProps {
   values: SpendingInput;
   onChange: (key: keyof SpendingInput, value: number) => void;
+  totalSalary: number;
   onNext: () => void;
 }
 
-export function SpendingStep({ values, onChange, onNext }: SpendingStepProps) {
+// 총급여 7천만 초과 시 공제 불가 항목
+const SALARY_CAPPED_FIELDS: (keyof SpendingInput)[] = ["culture", "sports"];
+
+export function SpendingStep({ values, onChange, totalSalary, onNext }: SpendingStepProps) {
   const [focusedKey, setFocusedKey] = useState<keyof SpendingInput | null>(null);
+  const isHighIncome = totalSalary > 70_000_000;
 
   const totalUsage = Object.values(values).reduce((a, b) => a + b, 0);
   const hasAnyInput = totalUsage > 0;
@@ -98,15 +111,21 @@ export function SpendingStep({ values, onChange, onNext }: SpendingStepProps) {
           {FIELDS.map((field) => {
             const isFocused = focusedKey === field.key;
             const hasValue = values[field.key] > 0;
+            const isDisabled = isHighIncome && SALARY_CAPPED_FIELDS.includes(field.key);
 
             return (
-              <div key={field.key}>
+              <div key={field.key} className={isDisabled ? "opacity-40" : ""}>
                 {/* 라벨 행 */}
                 <div className="flex items-center justify-between mb-[0.8rem]">
                   <div className="flex items-center gap-[0.8rem]">
                     <span className="text-[1.4rem] font-semibold text-[var(--color-text-primary)]">
                       {field.label}
                     </span>
+                    {isDisabled && (
+                      <span className="text-[1.1rem] font-medium text-white bg-[var(--color-text-tertiary)] px-[0.6rem] py-[0.2rem] rounded-full">
+                        해당 없음
+                      </span>
+                    )}
                   </div>
                   <span className={`text-[1.3rem] font-bold text-[var(--color-primary)] ${field.opacity}`}>
                     공제율 {field.rate}
@@ -119,7 +138,9 @@ export function SpendingStep({ values, onChange, onNext }: SpendingStepProps) {
                     relative flex items-center
                     h-[5.2rem] px-[1.6rem] rounded-[var(--radius-md)]
                     border transition-colors duration-150
-                    ${isFocused
+                    ${isDisabled
+                      ? "border-[var(--color-border)] bg-[var(--color-bg-subtle)] cursor-not-allowed"
+                      : isFocused
                       ? "border-[var(--color-primary)] bg-[var(--color-primary-bg)]"
                       : hasValue
                       ? "border-[var(--color-primary)] bg-white"
@@ -130,12 +151,13 @@ export function SpendingStep({ values, onChange, onNext }: SpendingStepProps) {
                   <input
                     type="text"
                     inputMode="numeric"
-                    value={values[field.key] === 0 ? "" : values[field.key].toLocaleString()}
+                    disabled={isDisabled}
+                    value={isDisabled ? "" : values[field.key] === 0 ? "" : values[field.key].toLocaleString()}
                     onChange={handleInput(field.key)}
                     onFocus={() => setFocusedKey(field.key)}
                     onBlur={() => setFocusedKey(null)}
-                    placeholder={field.placeholder}
-                    className="flex-1 bg-transparent text-[1.7rem] font-semibold text-right text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-disabled)] placeholder:font-normal placeholder:text-[1.5rem]"
+                    placeholder={isDisabled ? "총급여 7천만 이하만 해당" : field.placeholder}
+                    className="flex-1 bg-transparent text-[1.7rem] font-semibold text-right text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-disabled)] placeholder:font-normal placeholder:text-[1.3rem] disabled:cursor-not-allowed"
                   />
                   <span className="ml-[0.8rem] text-[1.4rem] text-[var(--color-text-secondary)] shrink-0">
                     원
@@ -144,7 +166,7 @@ export function SpendingStep({ values, onChange, onNext }: SpendingStepProps) {
 
                 {/* 힌트 */}
                 <p className="mt-[0.5rem] text-[1.2rem] text-[var(--color-text-tertiary)]">
-                  {field.hint}
+                  {isDisabled ? "총급여 7,000만 원 초과자는 공제 대상에서 제외돼요." : field.hint}
                 </p>
               </div>
             );

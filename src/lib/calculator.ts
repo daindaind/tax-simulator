@@ -6,7 +6,8 @@
 export interface SpendingInput {
   creditCard: number;   // 신용카드 (공제율 15%)
   checkCard: number;    // 체크카드/현금영수증 (공제율 30%)
-  culture: number;      // 도서·공연·박물관·미술관 (공제율 30%)
+  culture: number;      // 도서·공연·박물관·영화 (공제율 30%)
+  sports: number;       // 체육시설 이용료 - 헬스장·수영장 (공제율 30%, 2025.07.01~)
   market: number;       // 전통시장 (공제율 40%)
   transport: number;    // 대중교통 (공제율 40%)
 }
@@ -44,6 +45,7 @@ export interface CalculationResult {
     creditCard: number;
     checkCard: number;
     culture: number;
+    sports: number;
     market: number;
     transport: number;
   };
@@ -53,18 +55,20 @@ export const DEDUCTION_RATES = {
   creditCard: 0.15,
   checkCard: 0.30,
   culture: 0.30,
+  sports: 0.30,
   market: 0.40,
   transport: 0.40,
 } as const;
 
 /**
  * 공제율이 낮은 순서로 문턱을 채우는 것이 사용자에게 유리
- * 신용카드(15%) → 체크카드(30%) → 문화(30%) → 전통시장(40%) → 대중교통(40%)
+ * 신용카드(15%) → 체크카드(30%) → 문화(30%) → 체육시설(30%) → 전통시장(40%) → 대중교통(40%)
  */
 const THRESHOLD_FILL_ORDER: (keyof SpendingInput)[] = [
   "creditCard",
   "checkCard",
   "culture",
+  "sports",
   "market",
   "transport",
 ];
@@ -76,17 +80,26 @@ export function calculateCardDeduction(
   // 1. 공제 문턱 = 총급여 × 25%
   const threshold = Math.floor(totalSalary * 0.25);
 
-  const totalUsage =
-    usage.creditCard +
-    usage.checkCard +
-    usage.culture +
-    usage.market +
-    usage.transport;
-
   // 2. 일반 공제 한도 결정
   const baseLimit = totalSalary <= 70_000_000 ? 3_000_000 : 2_500_000;
 
-  // 3. 문턱 미달이면 공제 없음
+  // 3. 도서·공연·영화·체육시설은 총급여 7천만 이하만 공제 대상
+  //    초과자는 해당 항목을 0으로 처리 (UI에서도 비활성화되나 방어 로직)
+  const eligibleUsage: SpendingInput = {
+    ...usage,
+    culture: totalSalary <= 70_000_000 ? usage.culture : 0,
+    sports:  totalSalary <= 70_000_000 ? usage.sports  : 0,
+  };
+
+  const totalUsage =
+    eligibleUsage.creditCard +
+    eligibleUsage.checkCard +
+    eligibleUsage.culture +
+    eligibleUsage.sports +
+    eligibleUsage.market +
+    eligibleUsage.transport;
+
+  // 4. 문턱 미달이면 공제 없음
   if (totalUsage <= threshold) {
     return {
       threshold,
@@ -104,24 +117,26 @@ export function calculateCardDeduction(
         creditCard: 0,
         checkCard: 0,
         culture: 0,
+        sports: 0,
         market: 0,
         transport: 0,
       },
     };
   }
 
-  // 4. 문턱 차감: 낮은 공제율 순으로 문턱을 채운다
+  // 5. 문턱 차감: 낮은 공제율 순으로 문턱을 채운다
   let remainingThreshold = threshold;
   const deductibleAmounts: Record<keyof SpendingInput, number> = {
     creditCard: 0,
     checkCard: 0,
     culture: 0,
+    sports: 0,
     market: 0,
     transport: 0,
   };
 
   for (const key of THRESHOLD_FILL_ORDER) {
-    const amount = usage[key];
+    const amount = eligibleUsage[key];
     const deductible = Math.max(0, amount - remainingThreshold);
     deductibleAmounts[key] = deductible;
     remainingThreshold = Math.max(0, remainingThreshold - amount);
@@ -130,16 +145,18 @@ export function calculateCardDeduction(
   // 5. 항목별 공제 가능 금액 산출 (공제율 적용)
   const breakdown = {
     creditCard: Math.floor(deductibleAmounts.creditCard * DEDUCTION_RATES.creditCard),
-    checkCard: Math.floor(deductibleAmounts.checkCard * DEDUCTION_RATES.checkCard),
-    culture: Math.floor(deductibleAmounts.culture * DEDUCTION_RATES.culture),
-    market: Math.floor(deductibleAmounts.market * DEDUCTION_RATES.market),
-    transport: Math.floor(deductibleAmounts.transport * DEDUCTION_RATES.transport),
+    checkCard:  Math.floor(deductibleAmounts.checkCard  * DEDUCTION_RATES.checkCard),
+    culture:    Math.floor(deductibleAmounts.culture    * DEDUCTION_RATES.culture),
+    sports:     Math.floor(deductibleAmounts.sports     * DEDUCTION_RATES.sports),
+    market:     Math.floor(deductibleAmounts.market     * DEDUCTION_RATES.market),
+    transport:  Math.floor(deductibleAmounts.transport  * DEDUCTION_RATES.transport),
   };
 
   const potentialDeduction =
     breakdown.creditCard +
     breakdown.checkCard +
     breakdown.culture +
+    breakdown.sports +
     breakdown.market +
     breakdown.transport;
 

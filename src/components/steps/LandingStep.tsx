@@ -81,7 +81,7 @@ export function LandingStep({ onStart }: LandingStepProps) {
       <BottomCTA
         label="내 공제액 확인하기"
         onClick={onStart}
-        subLabel="2024년 세법 기준 · 총 4단계"
+        subLabel="2025년 세법 기준 · 총 4단계"
       />
     </div>
   );

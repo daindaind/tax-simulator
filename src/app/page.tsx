@@ -20,6 +20,7 @@ const DEFAULT_SPENDING: SpendingInput = {
   creditCard: 0,
   checkCard: 0,
   culture: 0,
+  sports: 0,
   market: 0,
   transport: 0,
 };
@@ -64,6 +65,7 @@ export default function Home() {
         <SpendingStep
           values={spending}
           onChange={handleSpendingChange}
+          totalSalary={totalSalary}
           onNext={goNext}
         />
       )}
