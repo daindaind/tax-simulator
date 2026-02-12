@@ -1,7 +1,7 @@
 "use client";
 
 import { CalculationResult, formatKRW } from "@/lib/calculator";
-import { ACTIVE_RULES } from "@/lib/taxRule";
+import { CATEGORY_RATE_DISPLAY } from "@/lib/taxRule";
 
 interface DeductionBreakdownProps {
   result: CalculationResult;
@@ -57,8 +57,7 @@ export function DeductionBreakdown({ result }: DeductionBreakdownProps) {
                   {ITEM_LABELS[key].label}
                 </td>
                 <td className="px-3 py-2.5 text-center text-gray-500">
-                  {/* TODO: 소득공제율 중복 계산 및 인라인 로직 개선 */}
-                  {((ACTIVE_RULES.categories.find((c) => c.key === key)?.rate ?? 0) * 100).toFixed(0)}%
+                  {CATEGORY_RATE_DISPLAY[key]}
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono font-medium text-gray-800">
                   {amount > 0 ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { CalculationResult, formatKRW, SpendingInput } from "@/lib/calculator";
-import { ACTIVE_RULES } from "@/lib/taxRule";
+import { ACTIVE_RULES, CATEGORY_RATE_DISPLAY } from "@/lib/taxRule";
 import { BottomCTA } from "@/components/funnel/BottomCTA";
 import { cn } from "@/lib/utils";
 
@@ -250,8 +250,7 @@ export function ResultStep({ result, spending, totalSalary, onRestart }: ResultS
                       {BREAKDOWN_LABELS[key].label}
                     </span>
                     <span className="text-[1.1rem] text-[var(--color-text-tertiary)]">
-                      {/* TODO: 소득공제율 중복 계산 및 인라인 로직 개선 */}
-                      ({((ACTIVE_RULES.categories.find((c) => c.key === key)?.rate ?? 0) * 100).toFixed(0)}%)
+                      ({CATEGORY_RATE_DISPLAY[key]})
                     </span>
                   </div>
                   <span className="text-[1.4rem] font-bold text-[var(--color-text-primary)]">

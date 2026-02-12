@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { SpendingInput } from "@/lib/calculator";
-import { ACTIVE_RULES } from "@/lib/taxRule";
+import { ACTIVE_RULES, CATEGORY_RATE_DISPLAY } from "@/lib/taxRule";
 import { BottomCTA } from "@/components/funnel/BottomCTA";
 
 interface SpendingField {
@@ -124,8 +124,7 @@ export function SpendingStep({ values, onChange, totalSalary, onNext }: Spending
                     )}
                   </div>
                   <span className={`text-[1.3rem] font-bold text-[var(--color-primary)] ${field.opacity}`}>
-                    {/* TODO: 소득공제율 중복 계산 및 인라인 로직 개선 */}
-                    공제율 {((ACTIVE_RULES.categories.find((c) => c.key === field.key)?.rate ?? 0) * 100).toFixed(0)}%
+                    공제율 {CATEGORY_RATE_DISPLAY[field.key]}
                   </span>
                 </div>
 

@@ -84,3 +84,11 @@ export interface TaxRule {
    활성 규정 — 연도 전환 시 이 줄만 교체
 ───────────────────────────────────────────── */
 export const ACTIVE_RULES: TaxRule = rules2025;
+
+/**
+ * 카테고리별 소득공제율 (UI용 % 문자열)
+ */
+export const CATEGORY_RATE_DISPLAY = Object.fromEntries(
+  ACTIVE_RULES.categories.map((c) => [c.key, `${(c.rate * 100).toFixed(0)}%`])
+);
+
