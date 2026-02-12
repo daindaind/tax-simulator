@@ -75,13 +75,23 @@ const THRESHOLD_FILL_ORDER: (keyof SpendingInput)[] = [
 
 export function calculateCardDeduction(
   totalSalary: number,
-  usage: SpendingInput
+  usage: SpendingInput,
+  numberOfChildren: number = 0
 ): CalculationResult {
   // 1. 공제 문턱 = 총급여 × 25%
   const threshold = Math.floor(totalSalary * 0.25);
 
-  // 2. 일반 공제 한도 결정
-  const baseLimit = totalSalary <= 70_000_000 ? 3_000_000 : 2_500_000;
+  // 2. 일반 공제 한도 결정 (2025년 개정: 자녀 수에 따라 차등 적용)
+  //    총급여 ≤7천만: 무자녀 300만 / 1명 350만 / 2명+ 400만
+  //    총급여 >7천만: 무자녀 250만 / 1명 275만 / 2명+ 300만
+  const children = Math.min(numberOfChildren, 2);
+  const BASE_LIMIT_TABLE: Record<"under" | "over", number[]> = {
+    under: [3_000_000, 3_500_000, 4_000_000],
+    over:  [2_500_000, 2_750_000, 3_000_000],
+  };
+  const baseLimit = totalSalary <= 70_000_000
+    ? BASE_LIMIT_TABLE.under[children]
+    : BASE_LIMIT_TABLE.over[children];
 
   // 3. 도서·공연·영화·체육시설은 총급여 7천만 이하만 공제 대상
   //    초과자는 해당 항목을 0으로 처리 (UI에서도 비활성화되나 방어 로직)

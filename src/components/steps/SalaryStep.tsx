@@ -7,6 +7,8 @@ import { formatKRW } from "@/lib/calculator";
 interface SalaryStepProps {
   value: number;
   onChange: (v: number) => void;
+  numberOfChildren: number;
+  onChildrenChange: (n: number) => void;
   onNext: () => void;
 }
 
@@ -17,14 +19,51 @@ const QUICK_VALUES = [
   { label: "7천만", value: 70_000_000 },
 ];
 
-export function SalaryStep({ value, onChange, onNext }: SalaryStepProps) {
+/** 급여·자녀 수에 따른 추가 공제 피드백 메시지 */
+function getChildrenBenefit(salary: number, children: number): string | null {
+  if (children <= 0) return null;
+  const isUnder = salary <= 70_000_000;
+
+  if (children === 1) {
+    const bonus = isUnder ? "50만원" : "25만원";
+    return `${bonus} 추가 공제돼요`;
+  }
+  // 2명 이상
+  const maxLimit = isUnder ? "400만원" : "300만원";
+  return `최대 ${maxLimit}까지 공제돼요`;
+}
+
+export function SalaryStep({
+  value,
+  onChange,
+  numberOfChildren,
+  onChildrenChange,
+  onNext,
+}: SalaryStepProps) {
   const [focused, setFocused] = useState(false);
+  const [hasChildren, setHasChildren] = useState(numberOfChildren > 0);
+
   const threshold = value > 0 ? Math.floor(value * 0.25) : null;
 
-  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSalaryInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9]/g, "");
     onChange(raw === "" ? 0 : Number(raw));
   };
+
+  const handleChildrenToggle = (checked: boolean) => {
+    setHasChildren(checked);
+    if (!checked) onChildrenChange(0);
+  };
+
+  const handleChildrenInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, "");
+    onChildrenChange(raw === "" ? 0 : Number(raw));
+  };
+
+  const benefitMessage =
+    hasChildren && value > 0
+      ? getChildrenBenefit(value, numberOfChildren)
+      : null;
 
   return (
     <div className="flex flex-col min-h-[calc(100svh-5.6rem)]">
@@ -68,7 +107,7 @@ export function SalaryStep({ value, onChange, onNext }: SalaryStepProps) {
               type="text"
               inputMode="numeric"
               value={value === 0 ? "" : value.toLocaleString()}
-              onChange={handleInput}
+              onChange={handleSalaryInput}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               placeholder="46,800,000"
@@ -93,7 +132,7 @@ export function SalaryStep({ value, onChange, onNext }: SalaryStepProps) {
         </div>
 
         {/* 빠른 선택 */}
-        <div>
+        <div className="mb-[2.8rem]">
           <p className="text-[1.2rem] text-[var(--color-text-tertiary)] mb-[1rem]">
             빠른 선택
           </p>
@@ -116,6 +155,47 @@ export function SalaryStep({ value, onChange, onNext }: SalaryStepProps) {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 자녀 여부 */}
+        <div>
+          {/* 체크박스 행 */}
+          <label className="flex items-center gap-[1.2rem] h-10 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasChildren}
+                onChange={(e) => handleChildrenToggle(e.target.checked)}
+                className="w-[1.4rem] h-[1.4rem] rounded-[0.4rem] accent-[var(--color-primary)] cursor-pointer"
+              />
+              <span className="text-[1.4rem] font-me
+              text-[var(--color-text-primary)]">
+                자녀가 있어요
+              </span>
+
+
+            {/* 자녀 수 입력 — 체크 시에만 표시 */}
+            {hasChildren && (
+              <div className="ml-auto flex items-center gap-[0.8rem] animate-fade-up">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={numberOfChildren === 0 ? "" : String(numberOfChildren)}
+                  onChange={handleChildrenInput}
+                  placeholder="0"
+                  maxLength={2}
+                  className="flex-1 bg-transparent text-[2rem] font-bold text-right text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-disabled)] placeholder:font-normal placeholder:text-[1.6rem]"
+                />
+                <span className="text-[1.4rem] text-[var(--color-text-secondary)]">명</span>
+              </div>
+            )}
+          </label>
+
+          {/* 동적 피드백 메시지 */}
+          {benefitMessage && (
+            <p className="animate-fade-up mt-[0.5rem] ml-[2.5rem] text-[1.3rem] font-semibold text-[var(--color-primary)]">
+              ✓ {benefitMessage}
+            </p>
+          )}
         </div>
       </div>
 

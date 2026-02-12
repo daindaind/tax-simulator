@@ -28,6 +28,7 @@ const DEFAULT_SPENDING: SpendingInput = {
 export default function Home() {
   const [step, setStep] = useState(0);
   const [totalSalary, setTotalSalary] = useState(0);
+  const [numberOfChildren, setNumberOfChildren] = useState(0);
   const [spending, setSpending] = useState<SpendingInput>(DEFAULT_SPENDING);
 
   const handleSpendingChange = (key: keyof SpendingInput, value: number) => {
@@ -39,12 +40,13 @@ export default function Home() {
   const restart = () => {
     setStep(0);
     setTotalSalary(0);
+    setNumberOfChildren(0);
     setSpending(DEFAULT_SPENDING);
   };
 
   const result = useMemo(
-    () => calculateCardDeduction(totalSalary, spending),
-    [totalSalary, spending]
+    () => calculateCardDeduction(totalSalary, spending, numberOfChildren),
+    [totalSalary, spending, numberOfChildren]
   );
 
   return (
@@ -57,6 +59,8 @@ export default function Home() {
         <SalaryStep
           value={totalSalary}
           onChange={setTotalSalary}
+          numberOfChildren={numberOfChildren}
+          onChildrenChange={setNumberOfChildren}
           onNext={goNext}
         />
       )}
