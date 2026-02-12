@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 ───────────────────────────────────────────── */
 interface Milestone {
   id: string;
-  pct: number;         // 게이지 % 기준
+  pct: number;
   label: string;
   emoji: string;
   message: string;
@@ -52,6 +52,8 @@ const MILESTONES: Milestone[] = [
   },
 ];
 
+const ANIMATION_DURATION = 2500; // ms
+
 /* ─────────────────────────────────────────────
    수직 게이지 바
 ───────────────────────────────────────────── */
@@ -62,14 +64,13 @@ function VerticalGauge({
   pct: number;
   reachedMilestones: Set<string>;
 }) {
-  const gaugeColor =
-    reachedMilestones.has("limit")
-      ? "#10b981"
-      : reachedMilestones.has("halfway")
-      ? "#8b5cf6"
-      : reachedMilestones.has("threshold")
-      ? "#5a7cf2"
-      : "#f97316";
+  const gaugeColor = reachedMilestones.has("limit")
+    ? "#10b981"
+    : reachedMilestones.has("halfway")
+    ? "#8b5cf6"
+    : reachedMilestones.has("threshold")
+    ? "#5a7cf2"
+    : "#f97316";
 
   return (
     <div className="relative flex flex-col items-center">
@@ -83,29 +84,25 @@ function VerticalGauge({
           <div
             key={m.id}
             className="absolute left-0 right-0 h-[1px] opacity-40"
-            style={{
-              bottom: `${m.pct}%`,
-              backgroundColor: m.zoneColor,
-            }}
+            style={{ bottom: `${m.pct}%`, backgroundColor: m.zoneColor }}
           />
         ))}
 
         {/* 채워지는 바 */}
         <div
-          className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-700 ease-out"
+          className="absolute bottom-0 left-0 right-0 rounded-full"
           style={{
             height: `${Math.min(100, pct)}%`,
             background: `linear-gradient(to top, ${gaugeColor}cc, ${gaugeColor})`,
           }}
         >
-          {/* 상단 하이라이트 */}
           {pct > 0 && (
             <div className="absolute top-0 left-0 right-0 h-[1.6rem] rounded-t-full bg-white/30" />
           )}
         </div>
       </div>
 
-      {/* 마일스톤 라벨 (오른쪽) */}
+      {/* 마일스톤 라벨 (우측) */}
       <div className="absolute right-[-10rem] top-0" style={{ height: "24rem" }}>
         {MILESTONES.map((m) => {
           const reached = reachedMilestones.has(m.id);
@@ -166,17 +163,18 @@ function MilestoneToast({
   onDismiss: () => void;
 }) {
   useEffect(() => {
-    const t = setTimeout(onDismiss, 3000);
+    const t = setTimeout(onDismiss, 2000);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
   return (
-    <div
-      className="animate-fade-up fixed bottom-[11rem] left-1/2 -translate-x-1/2 z-50 w-[calc(100%-4rem)] max-w-[36rem]"
-    >
+    <div className="animate-fade-up fixed bottom-[11rem] left-1/2 -translate-x-1/2 z-50 w-[calc(100%-4rem)] max-w-[36rem]">
       <div
         className="animate-celebrate flex items-start gap-[1.2rem] px-[1.6rem] py-[1.4rem] rounded-[var(--radius-lg)] shadow-lg"
-        style={{ backgroundColor: milestone.bgColor, border: `1.5px solid ${milestone.zoneColor}30` }}
+        style={{
+          backgroundColor: milestone.bgColor,
+          border: `1.5px solid ${milestone.zoneColor}30`,
+        }}
       >
         <span className="text-[2.4rem] leading-none">{milestone.emoji}</span>
         <div>
@@ -195,7 +193,12 @@ function MilestoneToast({
           className="ml-auto shrink-0 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] mt-[0.2rem]"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            <path
+              d="M1 1l12 12M13 1L1 13"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
           </svg>
         </button>
       </div>
@@ -212,38 +215,78 @@ interface GaugeStepProps {
   onNext: () => void;
 }
 
-export function GaugeStep({ result, totalSalary, onNext }: GaugeStepProps) {
-  const [reachedMilestones, setReachedMilestones] = useState<Set<string>>(new Set());
-  const [activeToast, setActiveToast] = useState<Milestone | null>(null);
-  const prevPctRef = useRef(0);
+type Phase = "filling" | "done";
 
-  // 게이지 %: 문턱 통과 + 한도 소진 복합 표현
+export function GaugeStep({ result, onNext }: GaugeStepProps) {
+  const [displayPct, setDisplayPct] = useState(0);
+  const [phase, setPhase] = useState<Phase>("filling");
+  const [reachedMilestones, setReachedMilestones] = useState<Set<string>>(new Set());
+  const [toastQueue, setToastQueue] = useState<Milestone[]>([]);
+  const [activeToast, setActiveToast] = useState<Milestone | null>(null);
+
+  const rafRef = useRef<number | null>(null);
+  // 애니메이션 루프 내 중복 감지 방지용 ref
+  const reachedRef = useRef<Set<string>>(new Set());
+
+  // 최종 게이지 % — 마운트 시 고정값
   const thresholdPct =
     result.threshold > 0
       ? Math.min(100, (result.totalUsage / result.threshold) * 100)
       : 0;
-
   const limitPct =
     result.baseLimit > 0
       ? Math.min(100, (result.generalDeduction / result.baseLimit) * 100)
       : 0;
-
-  // 게이지: 문턱 미달 0~33%, 통과 후 33~100%로 매핑
-  const gaugePct =
+  const targetPct =
     thresholdPct < 100
       ? (thresholdPct / 100) * 33
       : 33 + (limitPct / 100) * 67;
 
-  // 마일스톤 감지
+  /* ── Phase 1→2: 애니메이션 루프 ── */
   useEffect(() => {
-    MILESTONES.forEach((m) => {
-      if (gaugePct >= m.pct && !reachedMilestones.has(m.id) && prevPctRef.current < m.pct) {
-        setReachedMilestones((prev) => new Set(prev).add(m.id));
-        setActiveToast(m);
+    const startTime = performance.now();
+    let prevPct = 0;
+
+    const frame = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+      // ease-out cubic: 처음엔 빠르게, 끝에서 부드럽게 감속
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = eased * targetPct;
+
+      setDisplayPct(current);
+
+      // 마일스톤 통과 감지 → 토스트 큐에 순차 추가
+      MILESTONES.forEach((m) => {
+        if (current >= m.pct && prevPct < m.pct && !reachedRef.current.has(m.id)) {
+          reachedRef.current.add(m.id);
+          setReachedMilestones(new Set(reachedRef.current));
+          setToastQueue((prev) => [...prev, m]);
+        }
+      });
+
+      prevPct = current;
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(frame);
+      } else {
+        setTimeout(() => setPhase("done"), 300);
       }
-    });
-    prevPctRef.current = gaugePct;
-  }, [gaugePct, reachedMilestones]);
+    };
+
+    rafRef.current = requestAnimationFrame(frame);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  /* ── 토스트 큐 처리 ── */
+  useEffect(() => {
+    if (!activeToast && toastQueue.length > 0) {
+      setActiveToast(toastQueue[0]);
+      setToastQueue((prev) => prev.slice(1));
+    }
+  }, [activeToast, toastQueue]);
 
   const stageLabel =
     result.stage === "UNDER_THRESHOLD"
@@ -265,81 +308,95 @@ export function GaugeStep({ result, totalSalary, onNext }: GaugeStepProps) {
           게이지를 채울수록 환급액이 늘어나요!
         </p>
 
-        {/* 게이지 + 우측 정보 */}
-        <div className="flex gap-[2rem] items-start mb-[3.2rem]">
+        {/* ── Phase 1·2: 게이지 중앙 / Phase 3: 좌우 레이아웃 ── */}
+        <div
+          className={cn(
+            "flex items-start mb-[3.2rem] transition-all duration-500",
+            phase === "filling" ? "justify-center" : "gap-[2rem]"
+          )}
+        >
           {/* 수직 게이지 */}
-          <div className="shrink-0 ml-[1rem]">
-            <VerticalGauge pct={gaugePct} reachedMilestones={reachedMilestones} />
+          <div
+            className={cn(
+              "shrink-0 transition-all duration-500",
+              phase === "done" && "ml-[1rem]"
+            )}
+          >
+            <VerticalGauge pct={displayPct} reachedMilestones={reachedMilestones} />
           </div>
 
-          {/* 우측 수치 카드 */}
-          <div className="flex-1 flex flex-col gap-[1.2rem] pt-[0.4rem]">
-            {/* 현재 단계 배지 */}
-            <div className="inline-flex items-center gap-[0.6rem] bg-[var(--color-primary-bg)] px-[1.2rem] py-[0.6rem] rounded-full w-fit">
-              <div className="w-[0.6rem] h-[0.6rem] rounded-full bg-[var(--color-primary)] animate-pulse" />
-              <span className="text-[1.2rem] font-semibold text-[var(--color-primary)]">
-                {stageLabel}
-              </span>
-            </div>
-
-            {/* 공제 가능 금액 */}
-            <div className="p-[1.6rem] rounded-[var(--radius-lg)] bg-[var(--color-bg-subtle)] border border-[var(--color-border)]">
-              <p className="text-[1.2rem] text-[var(--color-text-tertiary)] mb-[0.4rem]">
-                공제 가능 금액
-              </p>
-              <p className="text-[2.2rem] font-bold text-[var(--color-text-primary)]">
-                {formatKRW(result.potentialDeduction)}
-              </p>
-            </div>
-
-            {/* 일반 / 추가 분리 */}
-            <div className="flex flex-col gap-[0.8rem]">
-              <div className="flex justify-between items-center px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] bg-white border border-[var(--color-border)]">
-                <span className="text-[1.3rem] text-[var(--color-text-secondary)]">일반 공제</span>
-                <span className="text-[1.4rem] font-bold text-[var(--color-primary)]">
-                  {formatKRW(result.generalDeduction)}
+          {/* 우측 정보 패널 — Phase done에서 표시 */}
+          {phase === "done" && (
+            <div className="flex-1 flex flex-col gap-[1.2rem] pt-[0.4rem] animate-fade-up">
+              {/* 현재 단계 배지 */}
+              <div className="inline-flex items-center gap-[0.6rem] bg-[var(--color-primary-bg)] px-[1.2rem] py-[0.6rem] rounded-full w-fit">
+                <div className="w-[0.6rem] h-[0.6rem] rounded-full bg-[var(--color-primary)] animate-pulse" />
+                <span className="text-[1.2rem] font-semibold text-[var(--color-primary)]">
+                  {stageLabel}
                 </span>
               </div>
-              <div
-                className={cn(
-                  "flex justify-between items-center px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] border transition-all duration-300",
-                  result.extraDeduction > 0
-                    ? "bg-[#d1fae5] border-[#10b981]/30"
-                    : "bg-white border-[var(--color-border)] opacity-40"
-                )}
-              >
-                <span className="text-[1.3rem] text-[var(--color-text-secondary)]">추가 공제</span>
-                <span
+
+              {/* 공제 가능 금액 */}
+              <div className="p-[1.6rem] rounded-[var(--radius-lg)] bg-[var(--color-bg-subtle)] border border-[var(--color-border)]">
+                <p className="text-[1.2rem] text-[var(--color-text-tertiary)] mb-[0.4rem]">
+                  공제 가능 금액
+                </p>
+                <p className="text-[2.2rem] font-bold text-[var(--color-text-primary)]">
+                  {formatKRW(result.potentialDeduction)}
+                </p>
+              </div>
+
+              {/* 일반 / 추가 분리 */}
+              <div className="flex flex-col gap-[0.8rem]">
+                <div className="flex justify-between items-center px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] bg-white border border-[var(--color-border)]">
+                  <span className="text-[1.3rem] text-[var(--color-text-secondary)]">일반 공제</span>
+                  <span className="text-[1.4rem] font-bold text-[var(--color-primary)]">
+                    {formatKRW(result.generalDeduction)}
+                  </span>
+                </div>
+                <div
                   className={cn(
-                    "text-[1.4rem] font-bold",
-                    result.extraDeduction > 0 ? "text-[#059669]" : "text-[var(--color-text-disabled)]"
+                    "flex justify-between items-center px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] border transition-all duration-300",
+                    result.extraDeduction > 0
+                      ? "bg-[#d1fae5] border-[#10b981]/30"
+                      : "bg-white border-[var(--color-border)] opacity-40"
                   )}
                 >
-                  {result.extraDeduction > 0 ? `+${formatKRW(result.extraDeduction)}` : "-"}
-                </span>
+                  <span className="text-[1.3rem] text-[var(--color-text-secondary)]">추가 공제</span>
+                  <span
+                    className={cn(
+                      "text-[1.4rem] font-bold",
+                      result.extraDeduction > 0
+                        ? "text-[#059669]"
+                        : "text-[var(--color-text-disabled)]"
+                    )}
+                  >
+                    {result.extraDeduction > 0 ? `+${formatKRW(result.extraDeduction)}` : "-"}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* 문턱 문구 */}
-            {result.stage === "UNDER_THRESHOLD" && (
-              <div className="px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] bg-[var(--color-warning-bg)]">
-                <p className="text-[1.2rem] text-orange-600">
-                  문턱까지{" "}
-                  <span className="font-bold">{formatKRW(result.thresholdGap)}</span>{" "}
-                  남았어요
-                </p>
-              </div>
-            )}
-            {result.stage !== "UNDER_THRESHOLD" && result.limitRemaining > 0 && (
-              <div className="px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] bg-[var(--color-primary-bg)]">
-                <p className="text-[1.2rem] text-[var(--color-primary)]">
-                  한도까지{" "}
-                  <span className="font-bold">{formatKRW(result.limitRemaining)}</span>{" "}
-                  더 가능해요
-                </p>
-              </div>
-            )}
-          </div>
+              {/* 문턱 / 한도 안내 */}
+              {result.stage === "UNDER_THRESHOLD" && (
+                <div className="px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] bg-[var(--color-warning-bg)]">
+                  <p className="text-[1.2rem] text-orange-600">
+                    문턱까지{" "}
+                    <span className="font-bold">{formatKRW(result.thresholdGap)}</span>{" "}
+                    남았어요
+                  </p>
+                </div>
+              )}
+              {result.stage !== "UNDER_THRESHOLD" && result.limitRemaining > 0 && (
+                <div className="px-[1.2rem] py-[1rem] rounded-[var(--radius-sm)] bg-[var(--color-primary-bg)]">
+                  <p className="text-[1.2rem] text-[var(--color-primary)]">
+                    한도까지{" "}
+                    <span className="font-bold">{formatKRW(result.limitRemaining)}</span>{" "}
+                    더 가능해요
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -354,7 +411,11 @@ export function GaugeStep({ result, totalSalary, onNext }: GaugeStepProps) {
       <BottomCTA
         label="최종 결과 보기"
         onClick={onNext}
-        subLabel={`최종 공제액 ${formatKRW(result.finalDeduction)}`}
+        subLabel={
+          phase === "done"
+            ? `최종 공제액 ${formatKRW(result.finalDeduction)}`
+            : undefined
+        }
       />
     </div>
   );
