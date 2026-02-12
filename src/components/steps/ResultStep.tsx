@@ -293,14 +293,41 @@ export function ResultStep({ result, spending, totalSalary, onRestart }: ResultS
           </div>
         )}
 
-        {/* 면책 고지 */}
-        <p className="text-[1.1rem] text-[var(--color-text-tertiary)] text-center leading-relaxed">
-          2025년 세법 기준 추정값이며 실제 결과와 다를 수 있어요.
-          <br />
-          체육시설 공제는 2025.07.01 이후 등록 사업자 이용분에 한해요.
-          <br />
-          정확한 신고는 홈택스를 이용해 주세요.
-        </p>
+        {/* 이 시뮬레이터가 다루지 않는 항목 */}
+        <div className="mb-[2rem] rounded-[var(--radius-lg)] bg-[var(--color-bg-subtle)] border border-[var(--color-border)] px-[1.6rem] py-[1.6rem]">
+          <p className="text-[1.3rem] font-bold text-[var(--color-text-secondary)] mb-[1.2rem]">
+            이 시뮬레이터가 다루지 않는 항목
+          </p>
+          <ul className="flex flex-col gap-[1rem]">
+            <li className="flex items-start gap-[0.8rem]">
+              <span className="mt-[0.6rem] shrink-0 w-[0.4rem] h-[0.4rem] rounded-full bg-[var(--color-text-tertiary)]" />
+              <p className="text-[1.2rem] text-[var(--color-text-secondary)] leading-[1.6]">
+                <span className="font-semibold">체육시설 공제</span><br />
+                2025.07.01 이후 문화비 사업자로 등록된 시설 이용분에 한해 적용돼요.
+              </p>
+            </li>
+            <li className="flex items-start gap-[0.8rem]">
+              <span className="mt-[0.6rem] shrink-0 w-[0.4rem] h-[0.4rem] rounded-full bg-[var(--color-text-tertiary)]" />
+              <p className="text-[1.2rem] text-[var(--color-text-secondary)] leading-[1.6]">
+                <span className="font-semibold">소비 증가분 특례</span><br />
+                2025년 상반기소비가 전년 동기 대비 5% 이상 늘었다면 증가분의 20%,
+                최대 100만 원을 추가 공제받을 수 있어요.
+              </p>
+            </li>
+          </ul>
+          <p className="mt-[1.4rem] pt-[1.2rem] border-t border-[var(--color-border)] text-[1.2rem] text-[var(--color-text-tertiary)]">
+            2025년 세법 기준 추정값이며 정확한 신고는{" "}
+            <a
+              href="https://www.hometax.go.kr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--color-primary)] underline underline-offset-2"
+            >
+              홈택스
+            </a>
+            를 이용해 주세요.
+          </p>
+        </div>
       </div>
 
       <BottomCTA
