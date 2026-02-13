@@ -206,4 +206,39 @@ describe("calculateCardDeduction", () => {
 
   });
 
+  // 6. 자녀 수 기반 한도 변화
+  describe("자녀 수 기반 한도 변화", () => {
+
+    // 공제 잠재액이 한도를 충분히 초과하는 지출 고정
+    // 체크카드 2500만 → 문턱 1천만 소진 → 공제 대상 1500만 × 30% = 450만
+    const SPENDING_OVER_LIMIT = { ...NO_SPENDING, checkCard: 25_000_000 };
+
+    it("자녀 0명이면 한도가 300만이다", () => {
+      const result = calculateCardDeduction(40_000_000, SPENDING_OVER_LIMIT, 0);
+      expect(result.baseLimit).toBe(3_000_000);
+      expect(result.generalDeduction).toBe(3_000_000);
+    });
+
+    it("자녀 1명이면 한도가 350만이다", () => {
+      const result = calculateCardDeduction(40_000_000, SPENDING_OVER_LIMIT, 1);
+      expect(result.baseLimit).toBe(3_500_000);
+      expect(result.generalDeduction).toBe(3_500_000);
+    });
+
+    it("자녀 2명 이상이면 한도가 400만이다", () => {
+      const result = calculateCardDeduction(40_000_000, SPENDING_OVER_LIMIT, 2);
+      expect(result.baseLimit).toBe(4_000_000);
+      expect(result.generalDeduction).toBe(4_000_000);
+    });
+
+    it("자녀 3명 이상도 한도는 400만으로 고정된다 (최대 2명 기준)", () => {
+      const result = calculateCardDeduction(40_000_000, SPENDING_OVER_LIMIT, 3);
+      expect(result.baseLimit).toBe(4_000_000);
+    });
+
+  });
+
+  // TODO: 총급여 7천만 초과 시 culture/sports 항목 검증
+  // TODO: 총급여 7천만 초과 시 자녀 수별 한도 검증
+
 });
