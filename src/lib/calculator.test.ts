@@ -238,7 +238,74 @@ describe("calculateCardDeduction", () => {
 
   });
 
-  // TODO: 총급여 7천만 초과 시 culture/sports 항목 검증
-  // TODO: 총급여 7천만 초과 시 자녀 수별 한도 검증
+  // 7. 소득 구간별 예외 처리
+  describe("소득 구간별 예외 처리", () => {
+
+    it("총급여 7천만 초과 시 culture 지출은 공제에서 제외된다", () => {
+      // 총급여 8천만 → culture 소득 제한(7천만) 초과 → culture = 0 처리
+      // 체크카드 2500만: 문턱 2천만 소진 → 공제 대상 500만 × 30% = 150만
+      // culture 1000만: 공제 대상에서 제외 → breakdown.culture = 0
+      const result = calculateCardDeduction(80_000_000, {
+        ...NO_SPENDING,
+        checkCard: 25_000_000,
+        culture: 10_000_000,
+      });
+
+      expect(result.breakdown.culture).toBe(0);
+    });
+
+    it("총급여 7천만 초과 시 sports 지출은 공제에서 제외된다", () => {
+      const result = calculateCardDeduction(80_000_000, {
+        ...NO_SPENDING,
+        checkCard: 25_000_000,
+        sports: 10_000_000,
+      });
+
+      expect(result.breakdown.sports).toBe(0);
+    });
+
+    it("총급여 7천만 이하이면 culture 지출이 공제에 정상 반영된다", () => {
+      // 총급여 4천만 → culture 소득 제한 없음
+      // 체크카드 1200만(문턱 소진) + culture 500만 → culture 공제: 500만 × 30% = 150만
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        checkCard: 12_000_000,
+        culture: 5_000_000,
+      });
+
+      expect(result.breakdown.culture).toBeGreaterThan(0);
+    });
+
+    it("총급여 7천만 초과 시 자녀 0명이면 한도가 250만이다", () => {
+      // 체크카드 40M → 문턱 2천만 소진 → 공제 대상 2천만 × 30% = 600만 → 한도 초과
+      const result = calculateCardDeduction(80_000_000, {
+        ...NO_SPENDING,
+        checkCard: 40_000_000,
+      }, 0);
+
+      expect(result.baseLimit).toBe(2_500_000);
+      expect(result.generalDeduction).toBe(2_500_000);
+    });
+
+    it("총급여 7천만 초과 시 자녀 1명이면 한도가 275만이다", () => {
+      const result = calculateCardDeduction(80_000_000, {
+        ...NO_SPENDING,
+        checkCard: 40_000_000,
+      }, 1);
+
+      expect(result.baseLimit).toBe(2_750_000);
+      expect(result.generalDeduction).toBe(2_750_000);
+    });
+
+    it("총급여 7천만 초과 시 자녀 2명 이상이면 한도가 300만이다", () => {
+      const result = calculateCardDeduction(80_000_000, {
+        ...NO_SPENDING,
+        checkCard: 40_000_000,
+      }, 2);
+
+      expect(result.baseLimit).toBe(3_000_000);
+      expect(result.generalDeduction).toBe(3_000_000);
+    });
+  });
 
 });
