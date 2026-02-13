@@ -134,4 +134,35 @@ describe("calculateCardDeduction", () => {
 
   });
 
+  // 4. 한도 캡핑
+  describe("한도 캡핑", () => {
+
+    it("공제액이 한도(300만)를 초과하면 300만으로 캡핑된다", () => {
+      // 총급여 4천만, 자녀 없음 → baseLimit = 300만
+      // 체크카드 2500만 → 문턱 1천만 소진 → 공제 대상 1500만
+      // 1500만 × 30% = 450만 → 한도 초과 → 300만으로 캡핑
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        checkCard: 25_000_000,
+      });
+
+      expect(result.generalDeduction).toBe(3_000_000);
+      expect(result.finalDeduction).toBe(3_000_000);
+    });
+
+    it("공제액이 한도 미만이면 캡핑 없이 그대로 반환된다", () => {
+      // 총급여 4천만, 자녀 없음 → baseLimit = 300만
+      // 체크카드 1500만 → 문턱 1천만 소진 → 공제 대상 500만
+      // 500만 × 30% = 150만 → 한도 미만 → 그대로
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        checkCard: 15_000_000,
+      });
+
+      expect(result.generalDeduction).toBe(1_500_000);
+      expect(result.limitRemaining).toBe(1_500_000); // 300만 - 150만 = 150만
+    });
+
+  });
+
 });
