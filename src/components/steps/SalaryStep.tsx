@@ -167,11 +167,9 @@ export function SalaryStep({
                 onChange={(e) => handleChildrenToggle(e.target.checked)}
                 className="w-[1.4rem] h-[1.4rem] rounded-[0.4rem] accent-[var(--color-primary)] cursor-pointer"
               />
-              <span className="text-[1.4rem] font-me
-              text-[var(--color-text-primary)]">
+              <span className="text-[1.4rem] text-[var(--color-text-primary)] whitespace-nowrap">
                 자녀가 있어요
               </span>
-
 
             {/* 자녀 수 입력 — 체크 시에만 표시 */}
             {hasChildren && (
@@ -183,7 +181,7 @@ export function SalaryStep({
                   onChange={handleChildrenInput}
                   placeholder="0"
                   maxLength={2}
-                  className="flex-1 bg-transparent text-[2rem] font-bold text-right text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-disabled)] placeholder:font-normal placeholder:text-[1.6rem]"
+                  className="w-[7rem] bg-transparent text-[2rem] font-bold text-right text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-disabled)] placeholder:font-normal placeholder:text-[1.6rem]"
                 />
                 <span className="text-[1.4rem] text-[var(--color-text-secondary)]">명</span>
               </div>
