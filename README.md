@@ -6,7 +6,7 @@
 
 ![시뮬레이터 동작 예시](./public/demo.gif)
 
-**[→ 라이브 데모 보기](#)**
+**[→ 라이브 데모 보기](https://tax-simulator-mu.vercel.app/)**
 
 ---
 
