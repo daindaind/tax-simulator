@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "연말정산 신용카드 소득공제 시뮬레이터",
   description:
     "총급여와 카드별 사용 내역을 입력하면 예상 소득공제 금액과 절세 전략을 실시간으로 확인할 수 있습니다.",
+  icons: { icon: [] },
 };
 
 export default function RootLayout({
