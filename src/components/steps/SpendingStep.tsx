@@ -174,7 +174,7 @@ export function SpendingStep({ values, onChange, totalSalary, onNext }: Spending
       </div>
 
       {isSpendingExcessive && (
-        <div className="fixed inset-x-0 bottom-60 left-13 w-[80%] bg-red-600 text-white p-3 text-center z-50 animate-fade-in-up rounded-md mx-4 shadow-lg">
+        <div className="fixed bottom-60 left-1/2 -translate-x-1/2 w-[35rem] max-w-[calc(100vw-2rem)] bg-red-600 text-white p-3 text-center z-50 animate-fade-in-up rounded-md shadow-lg">
           <p className="font-semibold text-[1.3rem]">
             연봉보다 지출이 많습니다. 입력값이 정확한지 다시 확인해 주세요!
           </p>
