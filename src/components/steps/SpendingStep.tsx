@@ -77,6 +77,8 @@ export function SpendingStep({ values, onChange, totalSalary, onNext }: Spending
   const totalUsage = Object.values(values).reduce((a, b) => a + b, 0);
   const hasAnyInput = totalUsage > 0;
 
+  const isSpendingExcessive = totalSalary > 0 && totalUsage > totalSalary;
+
   const handleInput =
     (key: keyof SpendingInput) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +87,7 @@ export function SpendingStep({ values, onChange, totalSalary, onNext }: Spending
     };
 
   return (
-    <div className="flex flex-col min-h-[calc(100svh-5.6rem)]">
+    <div className="relative flex flex-col min-h-[calc(100svh-5.6rem)]">
       <div className="flex-1 px-[2rem] pt-[3.2rem] pb-[2rem]">
         {/* 헤드라인 */}
         <p className="text-[1.4rem] font-medium text-[var(--color-primary)] mb-[0.8rem]">
@@ -168,12 +170,21 @@ export function SpendingStep({ values, onChange, totalSalary, onNext }: Spending
             );
           })}
         </div>
+
       </div>
+
+      {isSpendingExcessive && (
+        <div className="fixed inset-x-0 bottom-60 left-13 w-[80%] bg-red-600 text-white p-3 text-center z-50 animate-fade-in-up rounded-md mx-4 shadow-lg">
+          <p className="font-semibold text-[1.3rem]">
+            연봉보다 지출이 많습니다. 입력값이 정확한지 다시 확인해 주세요!
+          </p>
+        </div>
+      )}
 
       <BottomCTA
         label="공제액 계산하기"
         onClick={onNext}
-        disabled={!hasAnyInput}
+        disabled={!hasAnyInput || isSpendingExcessive}
         subLabel={hasAnyInput ? `총 사용액 ${totalUsage.toLocaleString()}원` : undefined}
       />
     </div>
