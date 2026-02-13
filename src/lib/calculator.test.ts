@@ -165,4 +165,45 @@ describe("calculateCardDeduction", () => {
 
   });
 
+  // 5. 전통시장·대중교통 독립 한도 적용
+  describe("전통시장·대중교통 독립 한도", () => {
+
+    it("일반 한도 초과 시 전통시장 추가 공제 100만이 별도 합산된다", () => {
+      // 총급여 4천만 → 문턱 1천만, baseLimit 300만
+      // 전통시장 2500만 → 문턱 1천만 소진 → 공제 대상 1500만
+      // 1500만 × 40% = 600만 → 일반 한도 초과
+      // generalDeduction = 300만, extraDeduction.market = min(600만, 100만) = 100만
+      // finalDeduction = 300만 + 100만 = 400만
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        market: 25_000_000,
+      });
+
+      expect(result.generalDeduction).toBe(3_000_000);
+      expect(result.extraDeductionBreakdown.market).toBe(1_000_000);
+      expect(result.finalDeduction).toBe(4_000_000);
+    });
+
+    it("전통시장·대중교통은 각각 독립적으로 100만 한도를 가진다 (합산 X)", () => {
+      // 총급여 4천만 → 문턱 1천만, baseLimit 300만
+      // 전통시장 2000만(문턱 소진) + 대중교통 2000만
+      // 전통시장 공제: 1000만 × 40% = 400만
+      // 대중교통 공제: 2000만 × 40% = 800만
+      // potentialDeduction = 1200만 → generalDeduction = 300만
+      // extraDeduction = min(400만, 100만) + min(800만, 100만) = 200만
+      // finalDeduction = 300만 + 200만 = 500만
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        market: 20_000_000,
+        transport: 20_000_000,
+      });
+
+      expect(result.extraDeductionBreakdown.market).toBe(1_000_000);
+      expect(result.extraDeductionBreakdown.transport).toBe(1_000_000);
+      expect(result.extraDeduction).toBe(2_000_000);
+      expect(result.finalDeduction).toBe(5_000_000);
+    });
+
+  });
+
 });
