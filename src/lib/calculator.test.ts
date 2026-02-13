@@ -77,4 +77,61 @@ describe("calculateCardDeduction", () => {
 
   });
 
+  // 3. 공제율 정확도
+  describe("공제율 정확도", () => {
+
+    it("신용카드 공제율은 15%이다", () => {
+      // 총급여 4천만 → 문턱 1천만
+      // 신용카드 1500만 → 문턱 1천만 소진 → 공제 대상 500만
+      // 500만 × 15% = 750,000원
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        creditCard: 15_000_000,
+      });
+
+      expect(result.breakdown.creditCard).toBe(750_000);
+    });
+
+    it("체크카드 공제율은 30%이다", () => {
+      // 총급여 4천만 → 문턱 1천만
+      // 체크카드 1500만 → 문턱 1천만 소진 → 공제 대상 500만
+      // 500만 × 30% = 1,500,000원
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        checkCard: 15_000_000,
+      });
+
+      expect(result.breakdown.checkCard).toBe(1_500_000);
+    });
+
+    it("전통시장 공제율은 40%이다", () => {
+      // 총급여 4천만 → 문턱 1천만
+      // 전통시장 1500만 → 문턱 1천만 소진 → 공제 대상 500만
+      // 500만 × 40% = 2,000,000원
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        market: 15_000_000,
+      });
+
+      expect(result.breakdown.market).toBe(2_000_000);
+    });
+
+    it("신용카드 + 체크카드 혼용 시 낮은 공제율(신용카드)부터 문턱을 채운다", () => {
+      // 총급여 4천만 → 문턱 1천만
+      // 신용카드 800만: 전부 문턱에 소진 → 공제 대상 0
+      // 체크카드 800만: 200만은 문턱 채우기, 600만이 공제 대상
+      // 공제: 신용카드 0 + 체크카드 600만 × 30% = 1,800,000원
+      const result = calculateCardDeduction(40_000_000, {
+        ...NO_SPENDING,
+        creditCard: 8_000_000,
+        checkCard: 8_000_000,
+      });
+
+      expect(result.breakdown.creditCard).toBe(0);
+      expect(result.breakdown.checkCard).toBe(1_800_000);
+      expect(result.finalDeduction).toBe(1_800_000);
+    });
+
+  });
+
 });
