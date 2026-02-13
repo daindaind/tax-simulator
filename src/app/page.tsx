@@ -35,6 +35,14 @@ export default function Home() {
     setSpending((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleSalaryChange = (value: number) => {
+    setTotalSalary(value);
+    // 7천만 초과로 변경 시 소득 제한 항목 초기화
+    if (value > 70_000_000) {
+      setSpending((prev) => ({ ...prev, culture: 0, sports: 0 }));
+    }
+  };
+
   const goNext = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
   const restart = () => {
@@ -58,7 +66,7 @@ export default function Home() {
       {step === 1 && (
         <SalaryStep
           value={totalSalary}
-          onChange={setTotalSalary}
+          onChange={handleSalaryChange}
           numberOfChildren={numberOfChildren}
           onChildrenChange={setNumberOfChildren}
           onNext={goNext}
