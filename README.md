@@ -8,6 +8,8 @@
 
 **[→ 라이브 데모 보기](https://tax-simulator-mu.vercel.app/)**
 
+**[→ 문제 정의 및 기획서 보기](https://daincha.notion.site/30425d1ad2f9804695ccfb6b3a214643?source=copy_link)**
+
 ---
 
 ## 기술적 강점
